@@ -2,8 +2,6 @@ const express = require("express"); //import the express js
 
 const bodyParser = require("body-parser") //import bodyParser
 
-const mongoose = require("mongoose"); //import the mongodb schema library
-
 const formidable = require("formidable");
 
 const multer = require("multer");
@@ -13,11 +11,9 @@ const cors = require("cors");
 const app = express(); //initiate the express js
 
 
-// Import the Controllers End Points
 const DB = require("./util/Database");
 
-const Auth = require("./controllers/AuthController");
-
+const AuthRoutes = require("./routes/AuthRoutes");
 
 app.use(bodyParser.json());
 
@@ -71,31 +67,11 @@ app.use(function(req, res, next) {
 
 // Handle Cors Policy here -- End
 
-app.get("/test/", (req, res) => {
-
-    res.status(200).send({
-
-        SEEN: "Yes"
-
-    })
-
-})
-
-app.post("/auth/register/", (req, res, next) => {
-
-    Auth.Auth("Create Account", req.body, res);
-
-})
-
-app.post("/auth/signin/", (req, res) => {
-
-    Auth.Auth("Sign Into Your Account", req.body, res);
-
-})
+app.use("/auth/", AuthRoutes);
 
 app.use("*", (req, res) => {
 
-    res.status(200).send({
+    res.status(404).send({
 
         type: "default",
 
@@ -122,6 +98,6 @@ const server = app.listen(5000, () => {
 
     port = server.address.port;
 
-    console.log('Server running at ' + "5000");
+    console.log('Server running at ' + "5000"+host);
 
 })

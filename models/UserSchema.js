@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const timeStamps = require('mongoose-timestamp');
 
-const AuthSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
 
     EMAIL: {
 
@@ -22,7 +22,7 @@ const AuthSchema = new mongoose.Schema({
 
         required: true,
 
-        length: 8
+        minlength: 8
 
     },
 
@@ -64,7 +64,7 @@ const AuthSchema = new mongoose.Schema({
 
 });
 
-AuthSchema.plugin(timeStamps, {
+UserSchema.plugin(timeStamps, {
 
     createdAt: 'created_at',
 
@@ -72,4 +72,4 @@ AuthSchema.plugin(timeStamps, {
 
 });
 
-module.exports = mongoose.model("USERDATA", AuthSchema);
+module.exports = mongoose.model("USERDATA", UserSchema);

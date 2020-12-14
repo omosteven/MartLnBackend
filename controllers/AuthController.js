@@ -1,407 +1,373 @@
-const AuthModel = require('../models/AuthSchema');
-
 const validator = require("validator");
 
-const ValidateInput = require("../util/Utility");
-
-const passwordHash = require('bcryptjs');
+const passwordHash = require("bcryptjs");
 
 const jwt = require("jsonwebtoken");
 
-const verifyToken = require("../util/VerifyToken");
+const AuthModel = require("../models/UserSchema");
 
-const Auth = (type, request, response) => {
+const Util = require("../util/Util");
 
-    if (type === "Create Account") {
+class AuthController { /**
+   * @description
+   *
+   * @param {Object}
+   *
+   * @return {String} Returned messsage
+   */
+    static signUp(req, res, next) {
+        const request = req.body;
 
-        const {
+        const {EMAIL, PASSWORD, FIRSTNAME, LASTNAME} = request;
 
-            FIRSTNAME,
+        const check = ["EMAIL", "PASSWORD", "FIRSTNAME", "LASTNAME"];
 
-            LASTNAME,
-
-            EMAIL,
-
-            PASSWORD
-
-        } = request;
-
-
-        const check = [
-
-            "FIRSTNAME",
-
-            "LASTNAME",
-
-            "EMAIL",
-
-            "PASSWORD"
-
-        ];
-
-        // console.log(ValidateInput.ValidateInput(check, request));
-
-        if (ValidateInput.ValidateInput(check, request)) {
-
-            if (validator.isEmail(EMAIL)) { //validate email
+        if (Util.validateInput(check, request)) {
+            if (validator.isEmail(EMAIL)) { // validate email
 
                 var hashedPassword = passwordHash.hashSync(PASSWORD, 10);
 
                 request.PASSWORD = hashedPassword;
 
-                if (validator.isAlpha(FIRSTNAME) & validator.isAlpha(LASTNAME)) { //validate email
+                if (PASSWORD.length >= 8) {
+                    request.CONFIRMCODE = Util.generateRandomStr(10);
 
                     let SignUp = new AuthModel(request);
 
-                    SignUp.save()
+                    SignUp.save().then(() => { // const
+                        const text = "<h3>Hi " + EMAIL + "</h3>" + "<p>Thanks for creating an account with us. Kindly use the link below to confirm your account</p>" + `<a href='https://mentup.com/auth/confirm/${
+                            request.CONFIRMCODE
+                        }/'>Confirm</a>`;
 
-                    .then(() => {
+                        const mailOptions = {
+                            from: "MartLN",
+                            to: EMAIL,
+                            subject: "Thanks for creating an account.",
+                            text: text,
+                            html: text
+                        };
 
-                        response.status(200).send({
+                        Util.sendMail(mailOptions);
 
-                            type: type,
+                        res.status(200).send({
+                            type: "Auth",
 
                             route: "/auth/register/",
 
-                            request: request,
+                            request: {
+                                EMAIL: EMAIL
+                            },
+
+                            payloads: {
+                                EMAIL: "required - String",
+                                PASSWORD: "required - String(>=8)"
+                            },
 
                             message: "Account Created",
 
-                            data: {
-
+                            server: {
                                 database: "mongoDB",
 
                                 architecture: "mongoose"
-
                             }
-
-                        })
-
-                    })
-
-                    .catch(err => {
-
+                        });
+                    }).catch(err => {
                         if (err.keyPattern.EMAIL === 1) {
-
-                            response.status(400).send({
-
-                                type: type,
+                            res.status(403).send({
+                                type: "Auth",
 
                                 route: "/auth/register/",
 
-                                request: request,
+                                request: {
+                                    EMAIL: EMAIL,
+
+                                    PASSWORD: ""
+                                },
+
+                                payloads: {
+                                    EMAIL: "required - String",
+                                    PASSWORD: "required - String(>=8)"
+                                },
 
                                 message: "This email is associated with an existing account.",
 
-                                data: {
-
+                                server: {
                                     database: "mongoDB",
 
                                     architecture: "mongoose"
-
                                 }
-
-                            })
-
+                            });
                         } else {
-
-                            response.status(400).send({
-
-                                type: type,
+                            res.status(404).send({
+                                type: "Auth",
 
                                 route: "/auth/register/",
 
-                                request: request,
+                                request: {
+                                    EMAIL: EMAIL
+                                },
+
+                                payloads: {
+                                    EMAIL: "required - String",
+                                    PASSWORD: "required - String(>=8)"
+                                },
 
                                 message: "We're sorry, an error occurred. Kindly try again!",
 
-                                data: {
-
+                                server: {
                                     database: "mongoDB",
 
                                     architecture: "mongoose"
-
                                 }
-
-                            })
-
+                            });
                         }
-
-                    })
+                    });
 
                 } else {
-
-                    response.status(401).send({
-
-                        type: type,
+                    res.status(401).send({
+                        type: "Auth",
 
                         route: "/auth/register/",
 
                         request: request,
 
-                        message: "We're sorry, seems your first or last name contains a non alphabetic character",
+                        payloads: {
+                            EMAIL: "required - String",
+                            PASSWORD: "required - String(>=8)"
+                        },
 
-                        data: {
+                        message: "The password minimum length required is 8!",
 
+                        server: {
                             database: "mongoDB",
 
                             architecture: "mongoose"
-
                         }
-
-                    })
-
+                    });
                 }
-
             } else {
-
-                response.status(401).send({
-
-                    type: type,
+                res.status(401).send({
+                    type: "Auth",
 
                     route: "/auth/register/",
 
                     request: request,
 
+                    payloads: {
+                        EMAIL: "required - String",
+                        PASSWORD: "required - String(>=8)"
+                    },
+
                     message: "The email entered is not valid!",
 
-                    data: {
-
+                    server: {
                         database: "mongoDB",
 
                         architecture: "mongoose"
-
                     }
-
-                })
-
+                });
             }
-
         } else {
-
-            response.status(401).send({
-
-                type: type,
+            res.status(400).send({
+                type: "Auth",
 
                 route: "/auth/register/",
 
                 request: request,
 
-                message: "Invalid Payload",
+                payloads: {
+                    EMAIL: "required - String",
+                    PASSWORD: "required - String(>=8)"
+                },
 
-                data: {
+                message: "Incomplete inputs to process",
 
+                server: {
                     database: "mongoDB",
 
                     architecture: "mongoose"
-
                 }
-
-            })
-
+            });
         }
+    }
 
-    } else if (type === "Sign Into Your Account") {
+    static login(req, res, next) {
 
-        const {
+        const check = ["EMAIL", "PASSWORD"];
 
-            EMAIL,
+        const request = req.body;
 
-            PASSWORD
+        const {EMAIL, PASSWORD} = request;
 
-        } = request;
+        if (Util.validateInput(check, request)) {
+            if (validator.isEmail(EMAIL)) { // validate email
 
-        // validate Payloads
-
-        const check = [
-
-            "EMAIL",
-
-            "PASSWORD"
-
-        ];
-
-
-        if (ValidateInput.ValidateInput(check, request)) {
-
-            if (validator.isEmail(EMAIL)) { //validate email
-
-                const jwtKey = "my_secret_key"
-
-                const jwtExpirySeconds = 3600
-
-                const token = jwt.sign({
-
-                    EMAIL
-
-                }, jwtKey, {
-
-                    algorithm: "HS256",
-
-                    expiresIn: jwtExpirySeconds,
-
-                })
+                const token = Util.generateToken(EMAIL);
 
                 AuthModel.findOneAndUpdate({
-
                     EMAIL: EMAIL
-
                 }, {
-
                     TOKEN: token
-
-                }, (err, res) => {
-
+                }, (err, result) => {
                     if (err) {
-
-                        response.status(401).send({
-
-                            type: type,
+                        res.status(404).send({
+                            type: "Auth",
 
                             route: "/auth/signin/",
 
-                            request: request,
+                            request: {
+                                EMAIL: request.EMAIL
+                            },
 
-                            message: "An Error Occurred",
+                            payloads: {
+                                EMAIL: "required - String",
+                                PASSWORD: "required - String(>=8)"
+                            },
 
-                            data: {
+                            message: "We're sorry, an error occurred. Kindly try again!",
 
+                            server: {
                                 database: "mongoDB",
 
                                 architecture: "mongoose"
-
                             }
-
-                        })
-
+                        });
                     } else {
-                        //    Perform verification
-                        var validPasswordTest = passwordHash.compareSync(PASSWORD, res.PASSWORD);
-
-                        if (validPasswordTest) {
-
-                            response.status(200).send({
-
-                                type: type,
+                        if (result === null) {
+                            res.status(401).send({
+                                type: "Auth",
 
                                 route: "/auth/signin/",
 
-                                request: request,
-
-                                message: "User Logged In!",
-
-                                data: {
-
-                                    database: "mongoDB",
-
-                                    architecture: "mongoose"
-
+                                request: {
+                                    EMAIL: request.EMAIL
                                 },
 
-                                token: token
+                                payloads: {
+                                    EMAIL: "required - String",
+                                    PASSWORD: "required - String(>=8)"
+                                },
 
-                            })
+                                message: "Invalid credentials",
 
-                        } else {
-
-                            response.status(401).send({
-
-                                type: type,
-
-                                route: "/auth/signin/",
-
-                                request: request,
-
-                                message: "Ops! You've just entered incorrect login details.",
-
-                                data: {
-
+                                server: {
                                     database: "mongoDB",
 
                                     architecture: "mongoose"
-
                                 }
+                            });
+                        } else { //    Perform verification
 
-                            })
+                            var validPasswordTest = passwordHash.compareSync(request.PASSWORD, result.PASSWORD);
 
+                            result.PASSWORD = "";
+
+                            if (validPasswordTest) {
+                                res.status(200).send({
+                                    type: "Auth",
+
+                                    route: "/auth/signin/",
+
+                                    request: {
+                                        EMAIL: request.EMAIL
+                                    },
+
+                                    payloads: {
+                                        EMAIL: "required - String",
+                                        PASSWORD: "required - String(>=8)"
+                                    },
+
+                                    message: "Successfully logged in",
+
+                                    data: result,
+
+                                    server: {
+                                        database: "mongoDB",
+
+                                        architecture: "mongoose"
+                                    },
+
+                                    token: token
+                                });
+                                console.log("Token here!", token);
+                            } else {
+                                res.status(401).send({
+                                    type: "Auth",
+
+                                    route: "/auth/signin/",
+
+                                    request: {
+                                        EMAIL: request.EMAIL
+                                    },
+
+                                    payloads: {
+                                        EMAIL: "required - String",
+                                        PASSWORD: "required - String(>=8)"
+                                    },
+
+                                    message: "Invalid credentials",
+
+                                    server: {
+                                        database: "mongoDB",
+
+                                        architecture: "mongoose"
+                                    }
+                                });
+                            }
                         }
-
                     }
-
-                })
-
+                });
             } else {
-
-                response.status(401).send({
-
-                    type: type,
+                res.status(401).send({
+                    type: "Auth",
 
                     route: "/auth/signin/",
 
-                    request: request,
+                    request: {
+                        EMAIL: request.EMAIL
+                    },
 
-                    message: "The email entered seems not valid.",
+                    payloads: {
+                        EMAIL: "required - String",
+                        PASSWORD: "required - String(>=8)"
+                    },
 
-                    data: {
+                    message: "Invalid credentials",
 
+                    server: {
                         database: "mongoDB",
 
                         architecture: "mongoose"
-
                     }
-
-                })
-
+                });
             }
-
         } else {
-
-            response.status(401).send({
-
-                type: type,
+            res.status(400).send({
+                type: "Auth",
 
                 route: "/auth/signin/",
 
-                request: request,
+                request: {
+                    EMAIL: request.EMAIL
+                },
 
-                message: "Invalid Payload",
+                payloads: {
+                    EMAIL: "required - String",
+                    PASSWORD: "required - String(>=8)"
+                },
 
-                data: {
+                message: "Incomplete inputs to process",
 
+                server: {
                     database: "mongoDB",
 
                     architecture: "mongoose"
-
                 }
-
-            })
-
+            });
         }
-
-    } else {
-
-        response.status(404).send({
-
-            type: type,
-
-            route: "/auth/",
-
-            request: request,
-
-            message: "Wrong Entry!",
-
-            data: {
-
-                database: "mongoDB",
-
-                architecture: "mongoose"
-
-            }
-
-        })
-
     }
+
 
 }
 
-module.exports.Auth = Auth;
+module.exports = AuthController;
