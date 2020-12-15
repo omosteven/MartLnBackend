@@ -4,10 +4,6 @@ const crypto = require('crypto');
 
 const nodemailer = require('nodemailer');
 
-const {resolve} = require('path');
-
-const {rejects} = require('assert');
-
 const axios = require('axios');
 
 class Util { /**
