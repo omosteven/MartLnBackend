@@ -1,299 +1,651 @@
-const ProfileModel = require("../models/ProfileSchema");
+const UserModel = require("../models/UserSchema");
 
-const AuthModel = require("../models/UserSchema");
+const BusinessModel = require("../models/BusinessSchema");
 
-const VerifyToken = require("../util/VerifyToken");
+const verifyToken = require("../util/VerifyToken");
+const Util = require("../util/Util");
 
-const FetchUserProfile = (type, request, response) => {
-  // assign the justed signed in token
-  const authToken = request.TOKEN;
+class Profile {
 
-  const isEmail = VerifyToken.VerifyToken(authToken);
+    static fetch(req, res, next) {
+        const {TOKEN} = req.body;
 
-  if (isEmail !== "Expired!") {
-    ProfileModel.findOne(
-      {
-        EMAIL: isEmail
-      },
-      (err, res) => {
-        if (err) {
-          response.status(401).send({
-            type: type,
+        if (TOKEN !== undefined && TOKEN !== null) {
+            const isTokenValidThenEmail = verifyToken(TOKEN);
 
-            route: "/profile/fetch/",
-
-            request: request,
-
-            message: "An Error Occurred",
-
-            data: {
-              database: "mongoDB",
-
-              architecture: "mongoose"
-            }
-          });
-        } else {
-          //Look up for the personal info data from the auth schema
-
-          AuthModel.findOne(
-            {
-              EMAIL: isEmail
-            },
-            (userErr, userData) => {
-              if (userErr) {
-                response.status(401).send({
-                  type: type,
-
-                  route: "/profile/fetch/",
-
-                  request: request,
-
-                  message: "An Error Occurred",
-
-                  data: {
-                    database: "mongoDB",
-
-                    architecture: "mongoose"
-                  }
-                });
-              } else {
-                if (res === null) {
-                  const res = {
-                    EMAIL: isEmail,
-
-                    FIRSTNAME: userData.FIRSTNAME,
-
-                    LASTNAME: userData.LASTNAME,
-
-                    ACCOUNTSTATUS: "Not Chosen Yet!",
-
-                    NOOFBUSINESS: 0,
-
-                    DOCUMENTID: null,
-
-                    DOCUMENTTYPE: "None",
-
-                    DOCUMENTREPORT: "Not Uploaded Yet!",
-
-                    TWITTERID: "Not Yet Integrated!",
-
-                    INSTAGRAMID: "Not Yet Integrated!"
-                    
-                  };
-
-                  response.status(200).send({
-                    type: type,
+            if (isTokenValidThenEmail === 'Expired!') {
+                res.status(401).send({
+                    type: "Profile",
 
                     route: "/profile/fetch/",
 
-                    request: request,
+                    request: {
+                        TOKEN: TOKEN
+                    },
 
-                    message: "Voila!",
+                    payloads: {
+                        TOKEN: "String"
+                    },
 
-                    data: {
-                      database: "mongoDB",
+                    message: "Your session has expired!",
 
-                      architecture: "mongoose",
+                    devMessage: "Token has expired",
 
-                      profile: res
+                    server: {
+                        database: "mongoDB",
+
+                        architecture: "mongoose"
                     }
-                  });
-                } else {
-                  response.status(200).send({
-                    type: type,
+                });
+            } else if (isTokenValidThenEmail === 'Error') {
+                res.status(404).send({
+                    type: "Profile",
 
                     route: "/profile/fetch/",
 
-                    request: request,
+                    request: {
+                        TOKEN: TOKEN
+                    },
 
-                    message: "Voila!",
+                    payloads: {
+                        TOKEN: "String"
+                    },
 
-                    data: {
-                      database: "mongoDB",
+                    message: "Unable to fetch profile",
 
-                      architecture: "mongoose",
+                    devMessage: "Token could not be verified",
 
-                      profile: res
+                    server: {
+                        database: "mongoDB",
+
+                        architecture: "mongoose"
                     }
-                  });
-                }
-              }
+                });
+            } else {
+                UserModel.findOne({
+                    EMAIL: isTokenValidThenEmail
+                }, (errFetch, respFetch) => {
+                    if (errFetch) {
+                        res.status(404).send({
+                            type: "Profile",
+
+                            route: "/profile/fetch/",
+
+                            request: {
+                                EMAIL: isTokenValidThenEmail
+                            },
+
+                            payloads: {
+                                TOKEN: "String"
+                            },
+
+                            message: "Unable to fetch profile. Kindly refresh your browser.",
+
+                            devMessage: "Error occurred while making the request.",
+
+                            expectedResult: {
+                                PROFILEPICLINK: "Profile Pic URL",
+                                ACCOUNTSTATUS: "The account status? Own or promote a business.",
+                                NOOFBUSINESS: "No of businesses",
+                                DOCUMENTID: "Url to the document",
+                                DOCUMENTTYPE: "Type of document.",
+                                DOCUMENTREPORT: "Status of the document? Verified or not.",
+                                TWITTERID: "Twitter url of the user.",
+                                INSTAGRAMID: "Instagram url of the user."
+                            },
+
+                            server: {
+                                database: "mongoDB",
+
+                                architecture: "mongoose"
+                            }
+                        });
+                    } else {
+                        if (respFetch === null) {
+                            res.status(404).send({
+                                type: "Profile",
+
+                                route: "/profile/fetch/",
+
+                                request: {
+                                    EMAIL: isTokenValidThenEmail
+                                },
+
+                                payloads: {
+                                    TOKEN: "String"
+                                },
+
+                                message: "Unable to fetch profile",
+
+                                devMessage: "Profile not found.",
+
+                                expectedResult: {
+                                    PROFILEPICLINK: "Profile Pic URL",
+                                    ACCOUNTSTATUS: "The account status? Own or promote a business.",
+                                    NOOFBUSINESS: "No of businesses",
+                                    DOCUMENTID: "Url to the document",
+                                    DOCUMENTTYPE: "Type of document.",
+                                    DOCUMENTREPORT: "Status of the document? Verified or not.",
+                                    TWITTERID: "Twitter url of the user.",
+                                    INSTAGRAMID: "Instagram url of the user."
+                                },
+
+                                server: {
+                                    database: "mongoDB",
+
+                                    architecture: "mongoose"
+                                }
+                            });
+                        } else { // Hide the password
+                            respFetch.PASSWORD = "Unauthorized!";
+
+                            res.status(200).send({
+                                type: "Profile",
+
+                                route: "/profile/fetch/",
+
+                                request: {
+                                    EMAIL: isTokenValidThenEmail
+                                },
+
+                                payloads: {
+                                    TOKEN: "String"
+                                },
+
+                                message: "Profile fetched successfully.",
+
+                                devMessage: "Success.",
+
+                                data: respFetch,
+
+                                expectedResult: {
+                                    PROFILEPICLINK: "Profile Pic URL",
+                                    ACCOUNTSTATUS: "The account status? Own or promote a business.",
+                                    NOOFBUSINESS: "No of businesses",
+                                    DOCUMENTID: "Url to the document",
+                                    DOCUMENTTYPE: "Type of document.",
+                                    DOCUMENTREPORT: "Status of the document? Verified or not.",
+                                    TWITTERID: "Twitter url of the user.",
+                                    INSTAGRAMID: "Instagram url of the user."
+                                },
+
+                                server: {
+                                    database: "mongoDB",
+
+                                    architecture: "mongoose"
+                                }
+                            });
+                        }
+                    }
+                })
+
             }
-          );
-        }
-      }
-    );
-  } else {
-    response.status(401).send({
-      type: type,
-
-      route: "/profile/fetch/",
-
-      request: request,
-
-      message: "Sorry, You're not authorized for this!",
-
-      data: {
-        database: "mongoDB",
-
-        architecture: "mongoose",
-
-        email: isEmail
-      }
-    });
-  }
-};
-
-const UpdateUserProfile = (type, request, response) => {
-  // assign the justed signed in token
-  const authToken = request.TOKEN;
-
-  const updateTitle = request.TITLE;
-
-  const updateData = request.DATA;
-
-  const isEmail = VerifyToken.VerifyToken(authToken);
-
-  if (isEmail !== "Expired!") {
-    ProfileModel.findOne(
-      {
-        EMAIL: isEmail
-      },
-      (err, res) => {
-        if (err) {
-          response.status(401).send({
-            type: type,
-
-            route: "/profile/update/",
-
-            request: request,
-
-            message: "An Error Occurred",
-
-            data: {
-              database: "mongoDB",
-
-              architecture: "mongoose"
-            }
-          });
         } else {
-          // add Email to the data to update
-          updateData.EMAIL = isEmail;
+            res.status(400).send({
+                type: "Profile",
 
-          // check if the user already owns an existing profile
+                route: "/profile/fetch/",
 
-          if (res === null) {
-            // insert new profile if not existed yet
+                request: {
+                    TOKEN: TOKEN
+                },
 
-            let insertNewProfile = new ProfileModel(updateData);
+                payloads: {
+                    TOKEN: "String"
+                },
 
-            insertNewProfile
-              .save()
+                message: "Unable to fetch data",
 
-              .then(() => {
-                response.status(200).send({
-                  type: type,
+                devMessage: "No token found",
 
-                  route: "/profile/update/",
+                expectedResult: {
+                    PROFILEPICLINK: "Profile Pic URL",
+                    ACCOUNTSTATUS: "The account status? Own or promote a business.",
+                    NOOFBUSINESS: "No of businesses",
+                    DOCUMENTID: "Url to the document",
+                    DOCUMENTTYPE: "Type of document.",
+                    DOCUMENTREPORT: "Status of the document? Verified or not.",
+                    TWITTERID: "Twitter url of the user.",
+                    INSTAGRAMID: "Instagram url of the user."
+                },
 
-                  request: request,
-
-                  message: "Voila! Successfully Updated",
-
-                  data: {
+                server: {
                     database: "mongoDB",
 
                     architecture: "mongoose"
-                  }
-                });
-              })
-
-              .catch(error => {
-                response.status(400).send({
-                  type: type,
-
-                  route: "/profile/update/",
-
-                  request: request,
-
-                  message: "We're sorry, we could not update that profile!",
-
-                  data: {
-                    database: "mongoDB",
-
-                    architecture: "mongoose"
-                  }
-                });
-              });
-          } else {
-            // update the profile if already existed
-
-            ProfileModel.updateOne(
-              {
-                EMAIL: isEmail
-              },
-              updateData,
-              (err, res) => {
-                if (err) {
-                  response.status(400).send({
-                    type: type,
-
-                    route: "/profile/update/",
-
-                    request: request,
-
-                    message: "We're sorry, we could not update that profile!",
-
-                    data: {
-                      database: "mongoDB",
-
-                      architecture: "mongoose"
-                    }
-                  });
-                } else {
-                  response.status(200).send({
-                    type: type,
-
-                    route: "/profile/update/",
-
-                    request: request,
-
-                    message: "Voila! Successfully Updated",
-
-                    data: {
-                      database: "mongoDB",
-
-                      architecture: "mongoose"
-                    }
-                  });
                 }
-              }
-            );
-          }
+            });
         }
-      }
-    );
-  } else {
-    response.status(401).send({
-      type: type,
+    }
 
-      route: "/profile/update/",
+    static update(req, res, next) {
+        const {TOKEN, SECTION, DATA} = req.body;
 
-      request: request,
+        if (TOKEN !== undefined && TOKEN !== null) {
+            const isTokenValidThenEmail = verifyToken(TOKEN);
 
-      message: "Sorry, You're not authorized for this!",
+            if (isTokenValidThenEmail === 'Expired!') {
+                res.status(401).send({
+                    type: "Profile",
 
-      data: {
-        database: "mongoDB",
+                    route: "/profile/update/",
 
-        architecture: "mongoose",
+                    request: req.body,
 
-        email: isEmail
-      }
-    });
-  }
-};
+                    payloads: {
+                        TOKEN: "String",
+                        ACCOUNT: {
+                            ACCOUNTSTATUS: "String"
+                        },
+                        BUSINESS: {
+                            BUSINESSNAME: "String",
+                            BUSINESSADDRESS: "String",
+                            BUSINESSTYPE: "String",
+                            NOOFEMPLOYEES: "Number",
+                            BUSINESSWEBSITE: "String",
+                            BUSINESSCONTACTINFO: "String",
+                            BUSINESSTWITTERURL: "String",
+                            BUSINESSINSTAGRAMURL: "String"
+                        },
+                        DOCUMENT: {
+                            DOCUMENTTYPE: "String",
+                            DOCUMENTREPORT: "String"
+                        },
+                        SOCIALMEDIA: {
+                            TWITTERID: "String",
+                            INSTAGRAMID: "String"
+                        }
+                    },
 
-module.exports.UpdateUserProfile = UpdateUserProfile;
+                    message: "Your session has expired!",
 
-module.exports.FetchUserProfile = FetchUserProfile;
+                    devMessage: "Token has expired",
+
+                    server: {
+                        database: "mongoDB",
+
+                        architecture: "mongoose"
+                    }
+                });
+            } else if (isTokenValidThenEmail === 'Error') {
+                res.status(404).send({
+                    type: "Profile",
+
+                    route: "/profile/update/",
+
+                    request: req.body,
+
+                    payloads: {
+                        TOKEN: "String"
+                    },
+
+                    message: "Unable to update profile.",
+
+                    devMessage: "Token could not be verified",
+
+                    server: {
+                        database: "mongoDB",
+
+                        architecture: "mongoose"
+                    }
+                });
+            } else { // UserModel.findOne
+
+                let updateData = {};
+
+                switch (SECTION) {
+                    case "BUSINESS": updateData = DATA;
+                        break
+                    case "ACCOUNT": updateData = DATA;
+                        break
+                    case "DOCUMENT": updateData = DATA;
+                        break;
+                    case "SOCIALMEDIA": updateData = DATA;
+                        brea;
+                    default: updateData = {};
+                        break
+                };
+
+                if (Object.values(updateData).length === 0) {
+                    res.status(401).send({
+                        type: "Profile",
+
+                        route: "/profile/update/",
+
+                        request: req.body,
+
+                        payloads: {
+                            TOKEN: "String",
+                            ACCOUNT: {
+                                ACCOUNTSTATUS: "String"
+                            },
+                            BUSINESS: {
+                                BUSINESSNAME: "String",
+                                BUSINESSADDRESS: "String",
+                                BUSINESSTYPE: "String",
+                                NOOFEMPLOYEES: "Number",
+                                BUSINESSWEBSITE: "String",
+                                BUSINESSCONTACTINFO: "String",
+                                BUSINESSTWITTERURL: "String",
+                                BUSINESSINSTAGRAMURL: "String"
+                            },
+                            DOCUMENT: {
+                                DOCUMENTTYPE: "String",
+                                DOCUMENTREPORT: "String"
+                            },
+                            SOCIALMEDIA: {
+                                TWITTERID: "String",
+                                INSTAGRAMID: "String"
+                            }
+                        },
+
+                        message: "Unable to update profile.",
+
+                        devMessage: "Invalid section",
+
+                        server: {
+                            database: "mongoDB",
+
+                            architecture: "mongoose"
+                        }
+                    });
+                } else {
+                    if (SECTION !== "BUSINESS") {
+                        UserModel.findOneAndUpdate({
+                            EMAIL: isTokenValidThenEmail
+                        }, updateData, (errUpdate, respUpdate) => {
+
+                            if (errUpdate) {
+                                res.status(404).send({
+                                    type: "Profile",
+
+                                    route: "/profile/update/",
+
+                                    request: req.body,
+
+                                    payloads: {
+                                        TOKEN: "String",
+                                        ACCOUNT: {
+                                            ACCOUNTSTATUS: "String"
+                                        },
+                                        BUSINESS: {
+                                            BUSINESSNAME: "String",
+                                            BUSINESSADDRESS: "String",
+                                            BUSINESSTYPE: "String",
+                                            NOOFEMPLOYEES: "Number",
+                                            BUSINESSWEBSITE: "String",
+                                            BUSINESSCONTACTINFO: "String",
+                                            BUSINESSTWITTERURL: "String",
+                                            BUSINESSINSTAGRAMURL: "String"
+                                        },
+                                        DOCUMENT: {
+                                            DOCUMENTTYPE: "String",
+                                            DOCUMENTREPORT: "String"
+                                        },
+                                        SOCIALMEDIA: {
+                                            TWITTERID: "String",
+                                            INSTAGRAMID: "String"
+                                        }
+                                    },
+
+                                    message: "Unable to update profile. Kindly try again.",
+
+                                    devMessage: "Error occurred while making the request.",
+
+                                    server: {
+                                        database: "mongoDB",
+
+                                        architecture: "mongoose"
+                                    }
+                                });
+                            } else {
+                                if (respUpdate === null) {
+                                    res.status(404).send({
+                                        type: "Profile",
+
+                                        route: "/profile/update/",
+
+                                        request: req.body,
+
+                                        payloads: {
+                                            TOKEN: "String",
+                                            ACCOUNT: {
+                                                ACCOUNTSTATUS: "String"
+                                            },
+                                            BUSINESS: {
+                                                BUSINESSNAME: "String*",
+                                                BUSINESSADDRESS: "String*",
+                                                BUSINESSTYPE: "String*",
+                                                NOOFEMPLOYEES: "Number*",
+                                                BUSINESSWEBSITE: "String",
+                                                BUSINESSCONTACTINFO: "String*",
+                                                BUSINESSTWITTERURL: "String",
+                                                BUSINESSINSTAGRAMURL: "String"
+                                            },
+                                            DOCUMENT: {
+                                                DOCUMENTTYPE: "String",
+                                                DOCUMENTREPORT: "String"
+                                            },
+                                            SOCIALMEDIA: {
+                                                TWITTERID: "String",
+                                                INSTAGRAMID: "String"
+                                            }
+                                        },
+
+                                        message: "Unable to update profile",
+
+                                        devMessage: "Profile not found.",
+
+                                        server: {
+                                            database: "mongoDB",
+
+                                            architecture: "mongoose"
+                                        }
+                                    });
+                                } else {
+                                    res.status(200).send({
+                                        type: "Profile",
+
+                                        route: "/profile/update/",
+
+                                        request: req.body,
+
+                                        payloads: {
+                                            TOKEN: "String",
+                                            ACCOUNT: {
+                                                ACCOUNTSTATUS: "String"
+                                            },
+                                            BUSINESS: {
+                                                BUSINESSNAME: "String*",
+                                                BUSINESSADDRESS: "String*",
+                                                BUSINESSTYPE: "String*",
+                                                NOOFEMPLOYEES: "Number*",
+                                                BUSINESSWEBSITE: "String",
+                                                BUSINESSCONTACTINFO: "String*",
+                                                BUSINESSTWITTERURL: "String",
+                                                BUSINESSINSTAGRAMURL: "String"
+                                            },
+                                            DOCUMENT: {
+                                                DOCUMENTTYPE: "String",
+                                                DOCUMENTREPORT: "String"
+                                            },
+                                            SOCIALMEDIA: {
+                                                TWITTERID: "String",
+                                                INSTAGRAMID: "String"
+                                            }
+                                        },
+
+                                        message: "Profile successfully updated.",
+
+                                        devMessage: "Success.",
+
+                                        data: respFetch,
+
+                                        server: {
+                                            database: "mongoDB",
+
+                                            architecture: "mongoose"
+                                        }
+                                    });
+                                }
+                            }
+                        })
+                    } else {
+                        let BusinessID = Util.generateRandomStr(10);
+                        let BUSINESSLOGOLINK = Util.generateRandomStr(5);
+                        let BusinessData = {
+                            BUSINESSLOGOLINK: BUSINESSLOGOLINK,
+                            BUSINESSID: BusinessID,
+                            BUSINESSNAME: updateData.BUSINESSNAME,
+                            BUSINESSADDRESS: updateData.BUSINESSADDRESS,
+                            BUSINESSTYPE: updateData.BUSINESSTYPE,
+                            NOOFEMPLOYEES: updateData.NOOFEMPLOYEES,
+                            BUSINESSWEBSITE: updateData.BUSINESSWEBSITE,
+                            BUSINESSCONTACTINFO: updateData.BUSINESSCONTACTINFO,
+                            BUSINESSTWITTERURL: updateData.BUSINESSTWITTERURL,
+                            BUSINESSINSTAGRAMURL: updateData.BUSINESSINSTAGRAMURL
+                        }
+                        let Business = new BusinessModel(BusinessData);
+
+                        Business.save(() => {
+                            res.status(200).send({
+                                type: "Profile",
+
+                                route: "/profile/update/",
+
+                                request: req.body,
+
+                                payloads: {
+                                    TOKEN: "String",
+                                    ACCOUNT: {
+                                        ACCOUNTSTATUS: "String"
+                                    },
+                                    BUSINESS: {
+                                        BUSINESSNAME: "String*",
+                                        BUSINESSADDRESS: "String*",
+                                        BUSINESSTYPE: "String*",
+                                        NOOFEMPLOYEES: "Number*",
+                                        BUSINESSWEBSITE: "String",
+                                        BUSINESSCONTACTINFO: "String*",
+                                        BUSINESSTWITTERURL: "String",
+                                        BUSINESSINSTAGRAMURL: "String"
+                                    },
+                                    DOCUMENT: {
+                                        DOCUMENTTYPE: "String",
+                                        DOCUMENTREPORT: "String"
+                                    },
+                                    SOCIALMEDIA: {
+                                        TWITTERID: "String",
+                                        INSTAGRAMID: "String"
+                                    }
+                                },
+
+                                message: "Profile successfully updated.",
+
+                                devMessage: "Success.",
+
+                                data: respFetch,
+
+                                server: {
+                                    database: "mongoDB",
+
+                                    architecture: "mongoose"
+                                }
+                            });
+
+                        }).then(() => {
+                            res.status(400).send({
+                                type: "Profile",
+
+                                route: "/profile/update/",
+
+                                request: req.body,
+
+                                payloads: {
+                                    TOKEN: "String",
+                                    ACCOUNT: {
+                                        ACCOUNTSTATUS: "String"
+                                    },
+                                    BUSINESS: {
+                                        BUSINESSNAME: "String*",
+                                        BUSINESSADDRESS: "String*",
+                                        BUSINESSTYPE: "String*",
+                                        NOOFEMPLOYEES: "Number*",
+                                        BUSINESSWEBSITE: "String",
+                                        BUSINESSCONTACTINFO: "String*",
+                                        BUSINESSTWITTERURL: "String",
+                                        BUSINESSINSTAGRAMURL: "String"
+                                    },
+                                    DOCUMENT: {
+                                        DOCUMENTTYPE: "String",
+                                        DOCUMENTREPORT: "String"
+                                    },
+                                    SOCIALMEDIA: {
+                                        TWITTERID: "String",
+                                        INSTAGRAMID: "String"
+                                    }
+                                },
+
+                                message: "Profile successfully updated. Kindly check the inputs and try again",
+
+                                devMessage: "Error occurred while making the request. Kindly check the inputs and try again",
+
+                                data: respFetch,
+
+                                server: {
+                                    database: "mongoDB",
+
+                                    architecture: "mongoose"
+                                }
+                            });
+                        })
+                    }
+                }
+            }
+        } else {
+            res.status(400).send({
+                type: "Profile",
+
+                route: "/profile/update/",
+
+                request: req.body,
+
+                payloads: {
+                    TOKEN: "String",
+                    ACCOUNT: {
+                        ACCOUNTSTATUS: "String"
+                    },
+                    BUSINESS: {
+                        BUSINESSNAME: "String",
+                        BUSINESSADDRESS: "String",
+                        BUSINESSTYPE: "String",
+                        NOOFEMPLOYEES: "Number",
+                        BUSINESSWEBSITE: "String",
+                        BUSINESSCONTACTINFO: "String",
+                        BUSINESSTWITTERURL: "String",
+                        BUSINESSINSTAGRAMURL: "String"
+                    },
+                    DOCUMENT: {
+                        DOCUMENTTYPE: "String",
+                        DOCUMENTREPORT: "String"
+                    },
+                    SOCIALMEDIA: {
+                        TWITTERID: "String",
+                        INSTAGRAMID: "String"
+                    }
+                },
+
+                message: "Unable to update profile.",
+
+                devMessage: "No token found",
+
+                server: {
+                    database: "mongoDB",
+
+                    architecture: "mongoose"
+                }
+            });
+        }
+    }
+}
+module.exports = Profile;

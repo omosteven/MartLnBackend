@@ -10,10 +10,16 @@ const BusinessSchema = new mongoose.Schema({
 
         required: true,
 
-        unique: true,
-
         lowercase: true
 
+    },
+
+    BUSINESSID: {
+        type: String,
+
+        required: true,
+
+        unique: true
     },
 
     BUSINESSNAME: {
@@ -27,37 +33,58 @@ const BusinessSchema = new mongoose.Schema({
     BUSINESSADDRESS: {
         type: String,
 
-        required: true,
+        required: true
     },
+
     BUSINESSLOGOLINK: {
         type: String,
+
         required: true
     },
+
     BUSINESSTYPE: {
         type: String,
+
         required: true
     },
+
     NOOFEMPLOYEES: {
         type: Number,
+
         required: true,
+
         default: 0
+
     },
+
     BUSINESSWEBSITE: {
         type: String,
+
         required: false
     },
+
     BUSINESSCONTACTINFO: {
         type: String,
-        required: false
+
+        required: true
     },
+
     BUSINESSTWITTERURL: {
+
         type: String,
+
         required: false
+
     },
+
     BUSINESSINSTAGRAMURL: {
+
         type: String,
+
         required: false
+
     },
+
     QUERYPERIOD: {
 
         type: Date,

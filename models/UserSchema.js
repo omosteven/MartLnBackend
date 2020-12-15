@@ -54,6 +54,62 @@ const UserSchema = new mongoose.Schema({
 
     },
 
+    PROFILEPICLINK : {
+        type : String,
+
+        required : false
+    },
+    
+    ACCOUNTSTATUS: {
+        type: String,
+
+        required: false,
+
+        default: "none"
+    },
+
+    NOOFBUSINESS: {
+
+        type: Number,
+
+        required: false,
+
+        default: 0
+    },
+
+    DOCUMENTID: {
+
+        type: String,
+
+        required: false
+    },
+
+    DOCUMENTTYPE: {
+        type: String,
+
+        required: false
+    },
+
+    DOCUMENTREPORT: {
+        type: String,
+
+        required: false,
+
+        default: "Unverified"
+    },
+
+    TWITTERID: {
+        type: String,
+
+        required: false
+    },
+
+    INSTAGRAMID: {
+        type: String,
+
+        required: false
+    },
+
     QUERYPERIOD: {
 
         type: Date,

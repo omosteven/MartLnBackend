@@ -1,6 +1,6 @@
-const express = require("express"); //import the express js 
+const express = require("express"); // import the express js
 
-const bodyParser = require("body-parser") //import bodyParser
+const bodyParser = require("body-parser") // import bodyParser
 
 const formidable = require("formidable");
 
@@ -8,20 +8,18 @@ const multer = require("multer");
 
 const cors = require("cors");
 
-const app = express(); //initiate the express js
+const app = express(); // initiate the express js
 
 
 const DB = require("./util/Database");
 
 const AuthRoutes = require("./routes/AuthRoutes");
 
+const ProfileRoutes = require("./routes/ProfileRoutes");
+
 app.use(bodyParser.json());
 
-app.use(bodyParser.urlencoded({
-
-    extended: true
-
-}));
+app.use(bodyParser.urlencoded({extended: true}));
 
 app.use(bodyParser.json())
 
@@ -33,27 +31,15 @@ app.use(cors());
 
 // Handle Cors Policy here -- Start
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
 
     res.setHeader("Access-Control-Allow-Origin", "*");
 
     res.setHeader("Access-Control-Allow-Credentials", "true");
 
-    res.setHeader(
+    res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT,DELETE");
 
-        "Access-Control-Allow-Methods",
-
-        "GET,HEAD,OPTIONS,POST,PUT,DELETE"
-
-    );
-
-    res.setHeader(
-
-        "Access-Control-Allow-Headers",
-
-        "Origin,Cache-Control,Accept,X-Access-Token ,X-Requested-With, Content-Type, Access-Control-Request-Method"
-
-    );
+    res.setHeader("Access-Control-Allow-Headers", "Origin,Cache-Control,Accept,X-Access-Token ,X-Requested-With, Content-Type, Access-Control-Request-Method");
 
     if (req.method === "OPTIONS") {
 
@@ -68,6 +54,8 @@ app.use(function(req, res, next) {
 // Handle Cors Policy here -- End
 
 app.use("/auth/", AuthRoutes);
+
+app.use("/profile/", ProfileRoutes);
 
 app.use("*", (req, res) => {
 
@@ -92,12 +80,12 @@ app.use("*", (req, res) => {
 });
 
 
-const server = app.listen(5000, () => {
+const server = app.listen(process.env.port, () => {
 
     host = server.address().address;
 
     port = server.address.port;
 
-    console.log('Server running at ' + "5000"+host);
+    console.log('Server running at ' + "5000" + host);
 
 })
